@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Playwright
+node_modules/
+test-results/
+playwright-report/
+
+# Reports (generated output, not source)
+reports/*
+!reports/.gitkeep
+
+# Env / secrets
+.env
+*.log
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
