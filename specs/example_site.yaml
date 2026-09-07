@@ -7,3 +7,13 @@ pages:
       - type: page_loads
         max_load_time: 5.0
         expected_status: 200
+
+workflows:
+  - name: "Homepage loads with heading"
+    steps:
+      - action: goto
+        path: "/"
+      - action: expect_element
+        selector: "h1"
+      - action: expect_text
+        value: "Example Domain"

@@ -119,3 +119,42 @@ def test_save_report_json(tmp_path):
     out_path = str(tmp_path / "test_report.json")
     saved_path = save_report_json(report, path=out_path)
     assert os.path.exists(saved_path)
+
+
+from engine.workflow import run_workflow
+
+
+def test_workflow_runs_and_passes():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        spec = load_spec("specs/example_site.yaml")
+        workflow = spec["workflows"][0]
+
+        results = run_workflow(page, spec["base_url"], workflow)
+
+        assert all(r["passed"] for r in results)
+        assert len(results) == 3
+        browser.close()
+
+
+def test_workflow_stops_on_failure():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+
+        bad_workflow = {
+            "name": "Bad flow",
+            "steps": [
+                {"action": "goto", "path": "/"},
+                {"action": "expect_element", "selector": "#does-not-exist", "timeout": 1000},
+                {"action": "expect_text", "value": "This should not run"},
+            ],
+        }
+
+        results = run_workflow(page, "https://example.com", bad_workflow)
+
+        assert len(results) == 2
+        assert results[-1]["passed"] is False
+        browser.close()
