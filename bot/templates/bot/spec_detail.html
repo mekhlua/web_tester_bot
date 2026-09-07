@@ -17,5 +17,25 @@
             {% endfor %}
         </ul>
     {% endif %}
+
+    <form method="post" action="{% url 'run_spec' spec.id %}">
+        {% csrf_token %}
+        <button type="submit">Run Test</button>
+    </form>
+
+    <h2>Run History</h2>
+    {% if runs %}
+        <ul>
+            {% for run in runs %}
+                <li>
+                    <a href="{% url 'run_detail' run.id %}">
+                        Run #{{ run.id }} — {{ run.started_at }} — {{ run.passed_checks }}/{{ run.total_checks }} passed
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No runs yet.</p>
+    {% endif %}
 </body>
 </html>

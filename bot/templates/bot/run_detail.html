@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Run #{{ run.id }}</title></head>
+<body>
+    <h1>Run #{{ run.id }} — {{ run.spec.name }}</h1>
+    <p><strong>Status:</strong> {{ run.status }}</p>
+    <p><strong>Started:</strong> {{ run.started_at }}</p>
+    <p><strong>Result:</strong> {{ run.passed_checks }}/{{ run.total_checks }} passed</p>
+
+    <h2>Check Results</h2>
+    <ul>
+        {% for result in report.results %}
+            <li>
+                <strong>{% if result.passed %}PASS{% else %}FAIL{% endif %}</strong>
+                — {{ result.check_type }}: {{ result.message }}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <p><a href="{% url 'spec_detail' run.spec.id %}">Back to spec</a></p>
+</body>
+</html>
