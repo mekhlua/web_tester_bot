@@ -195,3 +195,22 @@ def test_parse_requirements_doc_unquoted_show():
     checks = spec["pages"][0]["checks"]
     assert {"type": "text_present", "text": "example domain"} in checks
     assert len(needs_review) == 0
+
+
+def test_parse_requirements_doc_link_check():
+    doc = "All links must work."
+    spec, needs_review = parse_requirements_doc(doc, "Portfolio", "https://example.com")
+
+    checks = spec["pages"][0]["checks"]
+    assert {"type": "link_valid"} in checks
+    assert len(needs_review) == 0
+
+
+def test_parse_requirements_doc_wider_keywords():
+    doc = "The page should contain the text projects. It should mention Addis Ababa."
+    spec, needs_review = parse_requirements_doc(doc, "Portfolio", "https://example.com")
+
+    checks = spec["pages"][0]["checks"]
+    assert {"type": "text_present", "text": "projects"} in checks
+    assert {"type": "text_present", "text": "Addis Ababa"} in checks
+    assert len(needs_review) == 0

@@ -1,13 +1,18 @@
 import re
 
+TEXT_PRESENCE_KEYWORDS = [
+    "display", "show", "contain", "appear", "state",
+    "include", "mention", "read", "say", "have the text"
+]
+
 
 def parse_requirements_doc(doc_text, site_name, base_url):
     """
     Parses a plain-text requirements document into a spec dict.
     Splits on sentences (not lines) so multiple requirements typed
     in one paragraph are each evaluated independently.
-    Supports both quoted text ("Welcome") and unquoted phrases
-    after show/display (show example domain).
+    Supports quoted text, unquoted phrases after a wide set of
+    "content presence" keywords, and link-validity phrases.
     """
     raw_sentences = re.split(r'(?<=[.!?])\s+', doc_text.strip())
     sentences = [s.strip() for s in raw_sentences if s.strip()]
@@ -23,15 +28,23 @@ def parse_requirements_doc(doc_text, site_name, base_url):
             checks.append({"type": "page_loads"})
             matched = True
 
-        if "display" in lower or "show" in lower:
+        if "link" in lower and (
+            "must work" in lower or "should work" in lower
+            or "not be broken" in lower or "no broken" in lower
+            or "must be valid" in lower or "should be valid" in lower
+        ):
+            checks.append({"type": "link_valid"})
+            matched = True
+
+        text_keyword = next((kw for kw in TEXT_PRESENCE_KEYWORDS if kw in lower), None)
+        if text_keyword:
             quoted = re.search(r'"([^"]+)"', sentence)
             if quoted:
                 checks.append({"type": "text_present", "text": quoted.group(1)})
                 matched = True
             else:
-                # Fallback: grab the phrase after "show"/"display" (unquoted)
                 unquoted = re.search(
-                    r'(?:show|display)s?\s+(?:the\s+text\s+)?(.+?)[\.\!\?]?$',
+                    re.escape(text_keyword) + r's?\s+(?:the\s+text\s+)?(.+?)[\.\!\?]?$',
                     sentence,
                     re.IGNORECASE
                 )
@@ -41,7 +54,7 @@ def parse_requirements_doc(doc_text, site_name, base_url):
                         checks.append({"type": "text_present", "text": phrase})
                         matched = True
 
-        if "form" in lower or "button" in lower or "link" in lower:
+        if "form" in lower or "button" in lower:
             needs_review.append(sentence)
             matched = True
 
