@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{ spec.name }}</title></head>
+<body>
+    <h1>{{ spec.name }}</h1>
+    <p><strong>URL:</strong> {{ spec.base_url }}</p>
+    <p><strong>Created:</strong> {{ spec.created_at }}</p>
+
+    <h2>Generated Spec (YAML)</h2>
+    <pre>{{ spec.spec_yaml }}</pre>
+
+    {% if needs_review %}
+        <h2>Needs Review</h2>
+        <ul>
+            {% for item in needs_review %}
+                <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

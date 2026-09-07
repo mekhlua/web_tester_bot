@@ -176,3 +176,13 @@ def test_parse_requirements_doc():
     assert {"type": "text_present", "text": "Welcome to Acme"} in spec["pages"][0]["checks"]
     assert len(needs_review) == 1
     assert "login form" in needs_review[0]
+
+
+def test_parse_requirements_doc_multiple_in_one_paragraph():
+    doc = 'The homepage must load successfully. It should display the text "Example Domain".'
+    spec, needs_review = parse_requirements_doc(doc, "Example Test", "https://example.com")
+
+    checks = spec["pages"][0]["checks"]
+    assert {"type": "page_loads"} in checks
+    assert {"type": "text_present", "text": "Example Domain"} in checks
+    assert len(needs_review) == 0

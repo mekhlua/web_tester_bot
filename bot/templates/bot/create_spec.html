@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>New Test Spec</title></head>
+<body>
+    <h1>Create a new test spec</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p><strong>{{ message }}</strong></p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Create Spec</button>
+    </form>
+</body>
+</html>
