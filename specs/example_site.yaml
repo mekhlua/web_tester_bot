@@ -1,0 +1,9 @@
+site: "Example Site"
+base_url: "https://example.com"
+
+pages:
+  - path: "/"
+    checks:
+      - type: page_loads
+        max_load_time: 5.0
+        expected_status: 200
