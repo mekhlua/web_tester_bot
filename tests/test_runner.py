@@ -95,3 +95,27 @@ def test_link_valid_check():
         result = run_check(page, {"type": "link_valid"})
         assert result["passed"] is True
         browser.close()
+
+
+from engine.report import build_report, print_report, save_report_json
+import os
+
+
+def test_build_report():
+    fake_results = [
+        {"passed": True, "message": "ok", "check_type": "page_loads"},
+        {"passed": False, "message": "broken", "check_type": "element_exists"},
+    ]
+    report = build_report("Test Site", fake_results)
+    assert report["total_checks"] == 2
+    assert report["passed"] == 1
+    assert report["failed"] == 1
+    assert report["site"] == "Test Site"
+
+
+def test_save_report_json(tmp_path):
+    fake_results = [{"passed": True, "message": "ok", "check_type": "page_loads"}]
+    report = build_report("Test Site", fake_results)
+    out_path = str(tmp_path / "test_report.json")
+    saved_path = save_report_json(report, path=out_path)
+    assert os.path.exists(saved_path)
