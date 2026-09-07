@@ -186,3 +186,12 @@ def test_parse_requirements_doc_multiple_in_one_paragraph():
     assert {"type": "page_loads"} in checks
     assert {"type": "text_present", "text": "Example Domain"} in checks
     assert len(needs_review) == 0
+
+
+def test_parse_requirements_doc_unquoted_show():
+    doc = "It should show example domain."
+    spec, needs_review = parse_requirements_doc(doc, "Example Test", "https://example.com")
+
+    checks = spec["pages"][0]["checks"]
+    assert {"type": "text_present", "text": "example domain"} in checks
+    assert len(needs_review) == 0

@@ -6,8 +6,9 @@ def parse_requirements_doc(doc_text, site_name, base_url):
     Parses a plain-text requirements document into a spec dict.
     Splits on sentences (not lines) so multiple requirements typed
     in one paragraph are each evaluated independently.
+    Supports both quoted text ("Welcome") and unquoted phrases
+    after show/display (show example domain).
     """
-    # Split into sentences on '.', '!', '?' followed by space or end of text
     raw_sentences = re.split(r'(?<=[.!?])\s+', doc_text.strip())
     sentences = [s.strip() for s in raw_sentences if s.strip()]
 
@@ -22,11 +23,23 @@ def parse_requirements_doc(doc_text, site_name, base_url):
             checks.append({"type": "page_loads"})
             matched = True
 
-        if "display" in lower or "show" in lower or ("text" in lower and '"' in sentence):
-            match = re.search(r'"([^"]+)"', sentence)
-            if match:
-                checks.append({"type": "text_present", "text": match.group(1)})
+        if "display" in lower or "show" in lower:
+            quoted = re.search(r'"([^"]+)"', sentence)
+            if quoted:
+                checks.append({"type": "text_present", "text": quoted.group(1)})
                 matched = True
+            else:
+                # Fallback: grab the phrase after "show"/"display" (unquoted)
+                unquoted = re.search(
+                    r'(?:show|display)s?\s+(?:the\s+text\s+)?(.+?)[\.\!\?]?$',
+                    sentence,
+                    re.IGNORECASE
+                )
+                if unquoted:
+                    phrase = unquoted.group(1).strip().rstrip(".!?")
+                    if phrase:
+                        checks.append({"type": "text_present", "text": phrase})
+                        matched = True
 
         if "form" in lower or "button" in lower or "link" in lower:
             needs_review.append(sentence)

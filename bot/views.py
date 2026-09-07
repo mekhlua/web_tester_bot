@@ -108,3 +108,18 @@ def run_detail(request, run_id):
     run = TestRun.objects.get(id=run_id, owner=request.user)
     report = json.loads(run.report_json) if run.report_json else None
     return render(request, "bot/run_detail.html", {"run": run, "report": report})
+
+
+from django.contrib.auth.forms import UserCreationForm
+
+
+def register(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Account created. Please log in.")
+            return redirect("login")
+    else:
+        form = UserCreationForm()
+    return render(request, "registration/register.html", {"form": form})
