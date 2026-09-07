@@ -55,3 +55,43 @@ def test_dispatcher_unknown_check_type():
     result = run_check(None, {"type": "not_a_real_check"})
     assert result["passed"] is False
     assert "Unknown check type" in result["message"]
+
+
+def test_element_exists_check():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto("https://example.com")
+        result = run_check(page, {"type": "element_exists", "selector": "h1"})
+        assert result["passed"] is True
+        browser.close()
+
+
+def test_element_exists_check_missing():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto("https://example.com")
+        result = run_check(page, {"type": "element_exists", "selector": "#does-not-exist", "timeout": 1000})
+        assert result["passed"] is False
+        browser.close()
+
+
+def test_text_present_check():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto("https://example.com")
+        result = run_check(page, {"type": "text_present", "text": "Example Domain"})
+        assert result["passed"] is True
+        browser.close()
+
+
+def test_link_valid_check():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto("https://example.com")
+        result = run_check(page, {"type": "link_valid"})
+        assert result["passed"] is True
+        browser.close()

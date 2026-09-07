@@ -1,7 +1,17 @@
-from checks.page_checks import page_loads
+from checks.page_checks import (
+    page_loads,
+    element_exists,
+    text_present,
+    link_valid,
+    no_console_errors,
+)
 
 CHECK_REGISTRY = {
     "page_loads": page_loads,
+    "element_exists": element_exists,
+    "text_present": text_present,
+    "link_valid": link_valid,
+    "no_console_errors": no_console_errors,
 }
 
 
