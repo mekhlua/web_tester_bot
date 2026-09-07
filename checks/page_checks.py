@@ -62,17 +62,28 @@ def link_valid(page, selector="a", max_links=20):
     Checks that links matching `selector` on the current page don't return
     broken (4xx/5xx) statuses. Limits how many it checks via max_links
     to avoid hammering large pages.
+
+    Skips non-HTTP links (mailto:, tel:, javascript:) since they can't be
+    fetched as web requests. Treats status 999 as a known anti-bot response
+    (commonly returned by LinkedIn and similar sites to block automated
+    requests) rather than a genuinely broken link.
     """
     hrefs = page.eval_on_selector_all(
         selector, "elements => elements.map(e => e.href).filter(h => h)"
     )
-    hrefs = hrefs[:max_links]
+
+    http_hrefs = [h for h in hrefs if h.startswith("http://") or h.startswith("https://")]
+    skipped = len(hrefs) - len(http_hrefs)
+    http_hrefs = http_hrefs[:max_links]
 
     broken = []
-    for href in hrefs:
+    bot_blocked = []
+    for href in http_hrefs:
         try:
             response = page.request.get(href)
-            if response.status >= 400:
+            if response.status == 999:
+                bot_blocked.append(href)
+            elif response.status >= 400:
                 broken.append((href, response.status))
         except Exception as e:
             broken.append((href, str(e)))
@@ -81,7 +92,13 @@ def link_valid(page, selector="a", max_links=20):
         details = "; ".join(f"{url} -> {status}" for url, status in broken)
         return {"passed": False, "message": f"Broken links found: {details}"}
 
-    return {"passed": True, "message": f"Checked {len(hrefs)} links, all valid"}
+    message = f"Checked {len(http_hrefs)} links, all valid"
+    if skipped:
+        message += f" ({skipped} non-HTTP link(s) skipped)"
+    if bot_blocked:
+        message += f" ({len(bot_blocked)} link(s) returned anti-bot status 999, assumed valid)"
+
+    return {"passed": True, "message": message}
 
 def no_console_errors(page):
     """
