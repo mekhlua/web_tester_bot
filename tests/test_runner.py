@@ -158,3 +158,21 @@ def test_workflow_stops_on_failure():
         assert len(results) == 2
         assert results[-1]["passed"] is False
         browser.close()
+
+
+from engine.doc_parser import parse_requirements_doc
+
+
+def test_parse_requirements_doc():
+    doc = '''
+    The homepage must load successfully.
+    It should display the text "Welcome to Acme".
+    There must be a login form with username and password fields.
+    '''
+    spec, needs_review = parse_requirements_doc(doc, "Acme Site", "https://acme.com")
+
+    assert spec["site"] == "Acme Site"
+    assert {"type": "page_loads"} in spec["pages"][0]["checks"]
+    assert {"type": "text_present", "text": "Welcome to Acme"} in spec["pages"][0]["checks"]
+    assert len(needs_review) == 1
+    assert "login form" in needs_review[0]
