@@ -1,13 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
-    <h1>Login</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Log in</button>
+{% extends "bot/base.html" %}
+{% block title %}Log in — Web Tester{% endblock %}
+
+{% block content %}
+  <div class="max-w-sm mx-auto mt-12">
+    <h1 class="text-xl font-semibold text-ink mb-6 text-center">Log in</h1>
+
+    <form method="post" class="bg-white border border-ink/10 rounded-lg p-6 space-y-4">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="w-full bg-accent text-white text-sm font-medium px-5 py-2.5 rounded-md hover:bg-accent-dark">
+        Log in
+      </button>
     </form>
-    <p>Don't have an account? <a href="{% url 'register' %}">Register</a></p>
-</body>
-</html>
+
+    <p class="text-sm text-ink/60 text-center mt-4">
+      Don't have an account? <a href="{% url 'register' %}" class="text-accent hover:underline">Register</a>
+    </p>
+  </div>
+{% endblock %}

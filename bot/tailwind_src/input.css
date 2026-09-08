@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f7f7f3;
+  --color-ink: #1c1d1f;
+  --color-accent: #0f6e5d;
+  --color-accent-dark: #0b5346;
+  --color-pass: #1f9d55;
+  --color-fail: #d94a38;
+  --color-warn: #d9a404;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="url"],
+  input[type="email"],
+  textarea,
+  select {
+    @apply w-full rounded-md border border-ink/20 px-3 py-2 text-sm bg-white
+           focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent;
+  }
+
+  textarea {
+    @apply min-h-[100px] font-mono;
+  }
+
+  label {
+    @apply block text-sm font-medium text-ink/80 mb-1;
+  }
+
+  p {
+    @apply mb-4;
+  }
+
+  form span.helptext {
+    @apply block mt-1 text-xs text-ink/50;
+  }
+
+  form ul {
+    @apply text-xs text-ink/50 list-none p-0 m-0 mt-1 mb-4;
+  }
+
+  form ul li {
+    @apply mb-0.5;
+  }
+
+  form ul.errorlist {
+    @apply text-sm text-fail;
+  }
+}

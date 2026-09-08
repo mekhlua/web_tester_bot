@@ -2,6 +2,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth.forms import UserCreationForm
 from playwright.sync_api import sync_playwright
 
 from bot.forms import TestSpecForm
@@ -31,6 +32,13 @@ def create_spec(request):
                 raw_document=doc_text,
                 spec_yaml=yaml.dump(spec_dict),
                 needs_review=json.dumps(needs_review),
+                requires_login=form.cleaned_data["requires_login"],
+                login_path=form.cleaned_data["login_path"],
+                username_selector=form.cleaned_data["username_selector"],
+                password_selector=form.cleaned_data["password_selector"],
+                submit_selector=form.cleaned_data["submit_selector"],
+                login_username=form.cleaned_data["login_username"],
+                login_password=form.cleaned_data["login_password"],
             )
 
             parser_label = "AI-powered" if parser_used == "llm" else "basic keyword-based (AI parser unavailable)"
@@ -58,6 +66,19 @@ def spec_detail(request, spec_id):
     return render(request, "bot/spec_detail.html", {"spec": spec, "needs_review": needs_review, "runs": runs})
 
 
+def _build_login_workflow(spec):
+    """Builds a workflow dict that logs in using the spec's stored login fields."""
+    return {
+        "name": "Login",
+        "steps": [
+            {"action": "goto", "path": spec.login_path},
+            {"action": "fill", "selector": spec.username_selector, "value": spec.login_username},
+            {"action": "fill", "selector": spec.password_selector, "value": spec.login_password},
+            {"action": "click", "selector": spec.submit_selector},
+        ],
+    }
+
+
 @login_required
 def run_spec_view(request, spec_id):
     spec = TestSpec.objects.get(id=spec_id, owner=request.user)
@@ -69,6 +90,26 @@ def run_spec_view(request, spec_id):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
+
+        if spec.requires_login:
+            login_workflow = _build_login_workflow(spec)
+            login_results = run_workflow(page, base_url, login_workflow)
+            all_results.extend(login_results)
+
+            if not all(r["passed"] for r in login_results):
+                # Login failed — stop here, nothing after this would be
+                # testing an authenticated session anyway.
+                browser.close()
+                report = build_report(spec.name, all_results)
+                test_run = TestRun.objects.create(
+                    spec=spec, owner=request.user, status="failed",
+                    report_json=json.dumps(report),
+                    total_checks=report["total_checks"],
+                    passed_checks=report["passed"],
+                    failed_checks=report["failed"],
+                )
+                messages.error(request, "Login failed — could not run the rest of the checks.")
+                return redirect("run_detail", run_id=test_run.id)
 
         for page_config in spec_dict.get("pages", []):
             path = page_config["path"]
@@ -110,9 +151,6 @@ def run_detail(request, run_id):
     run = TestRun.objects.get(id=run_id, owner=request.user)
     report = json.loads(run.report_json) if run.report_json else None
     return render(request, "bot/run_detail.html", {"run": run, "report": report})
-
-
-from django.contrib.auth.forms import UserCreationForm
 
 
 def register(request):

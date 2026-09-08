@@ -1,47 +1,58 @@
-<!DOCTYPE html>
-<html>
-<head><title>{{ spec.name }}</title></head>
-<body>
-    <h1>{{ spec.name }}</h1>
+{% extends "bot/base.html" %}
+{% block title %}{{ spec.name }} — Web Tester{% endblock %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <p><strong>{{ message }}</strong></p>
+{% block content %}
+  <div class="flex items-baseline justify-between mb-1">
+    <h1 class="text-xl font-semibold text-ink">{{ spec.name }}</h1>
+    <span class="text-xs text-ink/40 font-mono">created {{ spec.created_at|date:"M j, Y" }}</span>
+  </div>
+  <p class="text-sm font-mono text-ink/60 mb-8">{{ spec.base_url }}</p>
+
+  {% if needs_review %}
+    <div class="border-l-4 border-warn bg-warn/10 rounded-r-md p-4 mb-6">
+      <h2 class="text-sm font-semibold text-ink mb-2">Needs review</h2>
+      <ul class="text-sm text-ink/70 space-y-1 list-disc list-inside">
+        {% for item in needs_review %}
+          <li>{{ item }}</li>
         {% endfor %}
-    {% endif %}
-    <p><strong>URL:</strong> {{ spec.base_url }}</p>
-    <p><strong>Created:</strong> {{ spec.created_at }}</p>
+      </ul>
+    </div>
+  {% endif %}
 
-    <h2>Generated Spec (YAML)</h2>
-    <pre>{{ spec.spec_yaml }}</pre>
+  <div class="mb-6">
+    <h2 class="text-xs font-mono uppercase tracking-wide text-ink/50 mb-2">Generated spec</h2>
+    <pre class="bg-ink text-paper text-xs font-mono rounded-lg p-4 overflow-x-auto leading-relaxed">{{ spec.spec_yaml }}</pre>
+  </div>
 
-    {% if needs_review %}
-        <h2>Needs Review</h2>
-        <ul>
-            {% for item in needs_review %}
-                <li>{{ item }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+  <form method="post" action="{% url 'run_spec' spec.id %}" class="mb-10">
+    {% csrf_token %}
+    <button type="submit" class="bg-accent text-white text-sm font-medium px-5 py-2.5 rounded-md hover:bg-accent-dark">
+      Run test
+    </button>
+  </form>
 
-    <form method="post" action="{% url 'run_spec' spec.id %}">
-        {% csrf_token %}
-        <button type="submit">Run Test</button>
-    </form>
-
-    <h2>Run History</h2>
+  <div>
+    <h2 class="text-xs font-mono uppercase tracking-wide text-ink/50 mb-3">Run history</h2>
     {% if runs %}
-        <ul>
-            {% for run in runs %}
-                <li>
-                    <a href="{% url 'run_detail' run.id %}">
-                        Run #{{ run.id }} — {{ run.started_at }} — {{ run.passed_checks }}/{{ run.total_checks }} passed
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
+      <ul class="space-y-2">
+        {% for run in runs %}
+          <li>
+            <a href="{% url 'run_detail' run.id %}"
+               class="flex items-center justify-between bg-white border border-ink/10 rounded-md px-4 py-3 hover:border-accent/40 transition-colors">
+              <span class="text-sm text-ink/70 font-mono">Run #{{ run.id }} — {{ run.started_at|date:"M j, Y H:i" }}</span>
+              <span class="text-sm font-medium
+                {% if run.passed_checks == run.total_checks %} text-pass
+                {% elif run.passed_checks == 0 %} text-fail
+                {% else %} text-warn
+                {% endif %}">
+                {{ run.passed_checks }}/{{ run.total_checks }} passed
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-        <p>No runs yet.</p>
+      <p class="text-sm text-ink/50">No runs yet.</p>
     {% endif %}
-</body>
-</html>
+  </div>
+{% endblock %}

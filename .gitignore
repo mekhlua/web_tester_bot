@@ -24,3 +24,6 @@ reports/*
 .idea/
 db.sqlite3
 staticfiles/
+
+# Tailwind standalone CLI binary (not source, platform-specific)
+tailwindcss

@@ -1,0 +1,20 @@
+<nav class="border-b border-ink/10 bg-white">
+  <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="{% url 'create_spec' %}" class="font-semibold text-ink tracking-tight">
+      Web<span class="text-accent">Tester</span>
+    </a>
+
+    <div class="flex items-center gap-4 text-sm">
+      {% if user.is_authenticated %}
+        <span class="text-ink/40 font-mono text-xs">{{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="text-ink/60 hover:text-accent">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" class="text-ink/60 hover:text-accent">Log in</a>
+        <a href="{% url 'register' %}" class="text-ink/60 hover:text-accent">Sign up</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

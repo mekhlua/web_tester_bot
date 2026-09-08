@@ -1,19 +1,89 @@
-<!DOCTYPE html>
-<html>
-<head><title>New Test Spec</title></head>
-<body>
-    <h1>Create a new test spec</h1>
+{% extends "bot/base.html" %}
+{% block title %}New Test Spec — Web Tester{% endblock %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <p><strong>{{ message }}</strong></p>
-        {% endfor %}
-    {% endif %}
+{% block content %}
+  <div class="max-w-xl mx-auto">
+  <h1 class="text-xl font-semibold text-ink mb-6">Create a new test spec</h1>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Create Spec</button>
-    </form>
-</body>
-</html>
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    <div class="rounded-lg overflow-hidden border border-ink/15 bg-white">
+      <div class="flex items-center gap-2 bg-ink/5 border-b border-ink/10 px-4 py-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-fail/60"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-warn/60"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-pass/60"></span>
+        <span class="ml-3 flex-1 text-xs font-mono text-ink/50 truncate">
+          {{ form.base_url.value|default:"https://your-site.com" }}
+        </span>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <div>
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {{ form.name }}
+          {% for error in form.name.errors %}<p class="text-sm text-fail mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label for="{{ form.base_url.id_for_label }}">{{ form.base_url.label }}</label>
+          {{ form.base_url }}
+          {% for error in form.base_url.errors %}<p class="text-sm text-fail mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label for="{{ form.requirements_doc.id_for_label }}" class="font-mono text-xs uppercase tracking-wide text-ink/60">
+            $ {{ form.requirements_doc.label }}
+          </label>
+          {{ form.requirements_doc }}
+          <p class="text-xs text-ink/50 mt-1">{{ form.requirements_doc.help_text }}</p>
+          {% for error in form.requirements_doc.errors %}<p class="text-sm text-fail mt-1">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-ink/10 pt-6 space-y-5">
+      <label class="flex items-center gap-2 text-sm font-medium text-ink/80 cursor-pointer">
+        {{ form.requires_login }}
+        {{ form.requires_login.label }}
+      </label>
+
+      <div class="space-y-5 pl-1">
+        <div>
+          <label for="{{ form.login_path.id_for_label }}">{{ form.login_path.label }}</label>
+          {{ form.login_path }}
+          <p class="text-xs text-ink/50 mt-1 font-mono">{{ form.login_path.help_text }}</p>
+        </div>
+        <div>
+          <label for="{{ form.username_selector.id_for_label }}">{{ form.username_selector.label }}</label>
+          {{ form.username_selector }}
+          <p class="text-xs text-ink/50 mt-1 font-mono">{{ form.username_selector.help_text }}</p>
+        </div>
+        <div>
+          <label for="{{ form.password_selector.id_for_label }}">{{ form.password_selector.label }}</label>
+          {{ form.password_selector }}
+          <p class="text-xs text-ink/50 mt-1 font-mono">{{ form.password_selector.help_text }}</p>
+        </div>
+        <div>
+          <label for="{{ form.submit_selector.id_for_label }}">{{ form.submit_selector.label }}</label>
+          {{ form.submit_selector }}
+          <p class="text-xs text-ink/50 mt-1 font-mono">{{ form.submit_selector.help_text }}</p>
+        </div>
+        <div>
+          <label for="{{ form.login_username.id_for_label }}">{{ form.login_username.label }}</label>
+          {{ form.login_username }}
+        </div>
+        <div>
+          <label for="{{ form.login_password.id_for_label }}">{{ form.login_password.label }}</label>
+          {{ form.login_password }}
+          <p class="text-xs text-ink/50 mt-1">{{ form.login_password.help_text }}</p>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="bg-accent text-white text-sm font-medium px-5 py-2.5 rounded-md hover:bg-accent-dark">
+      Create Spec
+    </button>
+  </form>
+  </div>
+{% endblock %}
