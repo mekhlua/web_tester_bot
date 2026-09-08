@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 from bot.forms import TestSpecForm
 from bot.models import TestSpec, TestRun
-from engine.doc_parser import parse_requirements_doc
+from engine.llm_doc_parser import parse_requirements_doc_smart
 from engine.runner import run_check
 from engine.workflow import run_workflow
 from engine.report import build_report
@@ -22,7 +22,7 @@ def create_spec(request):
             base_url = form.cleaned_data["base_url"]
             doc_text = form.cleaned_data["requirements_doc"]
 
-            spec_dict, needs_review = parse_requirements_doc(doc_text, name, base_url)
+            spec_dict, needs_review, parser_used = parse_requirements_doc_smart(doc_text, name, base_url)
 
             test_spec = TestSpec.objects.create(
                 owner=request.user,
@@ -33,13 +33,15 @@ def create_spec(request):
                 needs_review=json.dumps(needs_review),
             )
 
+            parser_label = "AI-powered" if parser_used == "llm" else "basic keyword-based (AI parser unavailable)"
+
             if needs_review:
                 messages.warning(
                     request,
-                    f"Spec created, but {len(needs_review)} requirement(s) need manual review before running."
+                    f"Spec created using the {parser_label} parser, but {len(needs_review)} requirement(s) need manual review before running."
                 )
             else:
-                messages.success(request, "Spec created successfully.")
+                messages.success(request, f"Spec created successfully using the {parser_label} parser.")
 
             return redirect("spec_detail", spec_id=test_spec.id)
     else:

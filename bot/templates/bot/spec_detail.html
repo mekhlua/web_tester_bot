@@ -3,6 +3,12 @@
 <head><title>{{ spec.name }}</title></head>
 <body>
     <h1>{{ spec.name }}</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p><strong>{{ message }}</strong></p>
+        {% endfor %}
+    {% endif %}
     <p><strong>URL:</strong> {{ spec.base_url }}</p>
     <p><strong>Created:</strong> {{ spec.created_at }}</p>
 
