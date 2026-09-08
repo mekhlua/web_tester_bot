@@ -87,3 +87,27 @@ def parse_requirements_doc_llm(doc_text, site_name, base_url, site_context=""):
     }
 
     return spec, needs_review
+
+
+def parse_requirements_doc_smart(doc_text, site_name, base_url, site_context=""):
+    """
+    Tries the Gemini-based parser first. If it fails for any reason
+    (missing API key, network error, rate limit, bad response), falls
+    back to the deterministic keyword-based parser so the user still
+    gets a usable spec instead of a crash.
+
+    Returns (spec, needs_review, parser_used) where parser_used is
+    either "llm" or "keyword" so callers can inform the user which
+    one actually ran.
+    """
+    from engine.doc_parser import parse_requirements_doc
+
+    try:
+        spec, needs_review = parse_requirements_doc_llm(
+            doc_text, site_name, base_url, site_context=site_context
+        )
+        return spec, needs_review, "llm"
+    except Exception as e:
+        print(f"LLM parser failed, falling back to keyword parser: {e}")
+        spec, needs_review = parse_requirements_doc(doc_text, site_name, base_url)
+        return spec, needs_review, "keyword"
