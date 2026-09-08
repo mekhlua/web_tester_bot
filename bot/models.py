@@ -15,6 +15,17 @@ class TestSpec(models.Model):
     needs_review = models.TextField(blank=True, null=True)  # JSON list of items flagged during parsing
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Optional login support: if requires_login is True, a login workflow
+    # is auto-prepended before running any other checks/workflows, so the
+    # rest of the test runs in an authenticated session.
+    requires_login = models.BooleanField(default=False)
+    login_path = models.CharField(max_length=200, blank=True, null=True)  # e.g. "/login"
+    username_selector = models.CharField(max_length=200, blank=True, null=True)
+    password_selector = models.CharField(max_length=200, blank=True, null=True)
+    submit_selector = models.CharField(max_length=200, blank=True, null=True)
+    login_username = models.CharField(max_length=200, blank=True, null=True)
+    login_password = models.CharField(max_length=200, blank=True, null=True)  # stored plain text — use a disposable test account, not a real password
+
     def __str__(self):
         return f"{self.name} ({self.owner.username})"
 
