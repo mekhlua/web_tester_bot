@@ -214,3 +214,94 @@ def test_parse_requirements_doc_wider_keywords():
     assert {"type": "text_present", "text": "projects"} in checks
     assert {"type": "text_present", "text": "Addis Ababa"} in checks
     assert len(needs_review) == 0
+
+
+from unittest.mock import patch, MagicMock
+from engine.llm_doc_parser import parse_requirements_doc_llm, parse_requirements_doc_smart
+
+
+def test_llm_parser_with_mocked_gemini():
+    fake_response = MagicMock()
+    fake_response.text = '''{
+        "checks": [
+            {"type": "page_loads"},
+            {"type": "text_present", "text": "Mekhluqat Abdulwehab"}
+        ],
+        "workflows": [],
+        "needs_review": ["There must be a login form."]
+    }'''
+
+    with patch("engine.llm_doc_parser.genai.configure"), \
+         patch("engine.llm_doc_parser.genai.GenerativeModel") as MockModel:
+        MockModel.return_value.generate_content.return_value = fake_response
+
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-key-for-test"}):
+            spec, needs_review = parse_requirements_doc_llm(
+                "The homepage must load successfully. Show Mekhluqat Abdulwehab. There must be a login form.",
+                "Test Site",
+                "https://example.com"
+            )
+
+    checks = spec["pages"][0]["checks"]
+    assert {"type": "page_loads"} in checks
+    assert {"type": "text_present", "text": "Mekhluqat Abdulwehab"} in checks
+    assert "There must be a login form." in needs_review
+
+
+def test_llm_parser_strips_markdown_fences():
+    fake_response = MagicMock()
+    fake_response.text = '''```json
+    {"checks": [{"type": "page_loads"}], "workflows": [], "needs_review": []}
+```'''
+
+    with patch("engine.llm_doc_parser.genai.configure"), \
+         patch("engine.llm_doc_parser.genai.GenerativeModel") as MockModel:
+        MockModel.return_value.generate_content.return_value = fake_response
+
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-key-for-test"}):
+            spec, needs_review = parse_requirements_doc_llm(
+                "The homepage must load successfully.",
+                "Test Site",
+                "https://example.com"
+            )
+
+    assert {"type": "page_loads"} in spec["pages"][0]["checks"]
+
+
+def test_llm_parser_missing_api_key_raises():
+    with patch.dict("os.environ", {}, clear=True):
+        try:
+            parse_requirements_doc_llm("Some doc.", "Test Site", "https://example.com")
+            assert False, "Expected RuntimeError"
+        except RuntimeError as e:
+            assert "GEMINI_API_KEY" in str(e)
+
+
+def test_smart_parser_falls_back_on_llm_failure():
+    with patch("engine.llm_doc_parser.parse_requirements_doc_llm", side_effect=RuntimeError("simulated failure")):
+        spec, needs_review, parser_used = parse_requirements_doc_smart(
+            "The homepage must load successfully.",
+            "Test Site",
+            "https://example.com"
+        )
+
+    assert parser_used == "keyword"
+    assert {"type": "page_loads"} in spec["pages"][0]["checks"]
+
+
+def test_smart_parser_uses_llm_when_available():
+    fake_response = MagicMock()
+    fake_response.text = '{"checks": [{"type": "page_loads"}], "workflows": [], "needs_review": []}'
+
+    with patch("engine.llm_doc_parser.genai.configure"), \
+         patch("engine.llm_doc_parser.genai.GenerativeModel") as MockModel:
+        MockModel.return_value.generate_content.return_value = fake_response
+
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-key-for-test"}):
+            spec, needs_review, parser_used = parse_requirements_doc_smart(
+                "The homepage must load successfully.",
+                "Test Site",
+                "https://example.com"
+            )
+
+    assert parser_used == "llm"
