@@ -15,4 +15,4 @@ RUN python manage.py collectstatic --noinput
 EXPOSE 8000
 
 # Run migrations then start the production server
-CMD sh -c "python manage.py migrate --noinput && gunicorn webtester.wsgi:application --bind 0.0.0.0:8000"
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn webtester.wsgi:application --bind 0.0.0.0:8000"]
