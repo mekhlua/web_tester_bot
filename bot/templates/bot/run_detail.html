@@ -17,29 +17,38 @@
       {% endif %}">
       {{ run.status }}
     </span>
-    <span class="text-sm font-medium
-      {% if run.passed_checks == run.total_checks %} text-pass
-      {% elif run.passed_checks == 0 %} text-fail
-      {% else %} text-warn
-      {% endif %}">
-      {{ run.passed_checks }}/{{ run.total_checks }} passed
-    </span>
+    {% if report %}
+      <span class="text-sm font-medium
+        {% if run.passed_checks == run.total_checks %} text-pass
+        {% elif run.passed_checks == 0 %} text-fail
+        {% else %} text-warn
+        {% endif %}">
+        {{ run.passed_checks }}/{{ run.total_checks }} passed
+      </span>
+    {% endif %}
   </div>
 
-  <h2 class="text-xs font-mono uppercase tracking-wide text-ink/50 mb-3">Check results</h2>
-  <ul class="space-y-2">
-    {% for result in report.results %}
-      <li class="flex items-start gap-3 bg-white border-l-4 rounded-r-md px-4 py-3
-        {% if result.passed %} border-pass {% else %} border-fail {% endif %}">
-        <span class="text-xs font-mono font-semibold mt-0.5 shrink-0
-          {% if result.passed %} text-pass {% else %} text-fail {% endif %}">
-          {% if result.passed %}PASS{% else %}FAIL{% endif %}
-        </span>
-        <span class="text-sm text-ink/80">
-          <span class="font-mono text-ink/50">{{ result.check_type }}:</span>
-          {{ result.message }}
-        </span>
-      </li>
-    {% endfor %}
-  </ul>
+  {% if run.status == 'running' or run.status == 'pending' %}
+    <p class="text-sm text-ink/60">Test is still running — this page will refresh automatically.</p>
+    <script>
+      setTimeout(function() { window.location.reload(); }, 3000);
+    </script>
+  {% else %}
+    <h2 class="text-xs font-mono uppercase tracking-wide text-ink/50 mb-3">Check results</h2>
+    <ul class="space-y-2">
+      {% for result in report.results %}
+        <li class="flex items-start gap-3 bg-white border-l-4 rounded-r-md px-4 py-3
+          {% if result.passed %} border-pass {% else %} border-fail {% endif %}">
+          <span class="text-xs font-mono font-semibold mt-0.5 shrink-0
+            {% if result.passed %} text-pass {% else %} text-fail {% endif %}">
+            {% if result.passed %}PASS{% else %}FAIL{% endif %}
+          </span>
+          <span class="text-sm text-ink/80">
+            <span class="font-mono text-ink/50">{{ result.check_type }}:</span>
+            {{ result.message }}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 {% endblock %}

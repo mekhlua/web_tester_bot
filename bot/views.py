@@ -1,4 +1,6 @@
 import json
+import threading
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -112,70 +114,99 @@ def _build_login_workflow(spec):
     }
 
 
-@login_required
-def run_spec_view(request, spec_id):
-    spec = TestSpec.objects.get(id=spec_id, owner=request.user)
+def _execute_test_run(test_run_id):
+    """
+    Runs the actual Playwright test for a TestRun. Designed to run in a
+    background thread — takes only the ID (not request/user objects,
+    which aren't safe to share across threads) and updates the TestRun
+    row directly when finished.
+    """
+    from django.db import connection
+    connection.close()  # ensure this thread gets its own fresh DB connection
+
+    test_run = TestRun.objects.get(id=test_run_id)
+    spec = test_run.spec
     spec_dict = yaml.safe_load(spec.spec_yaml)
     base_url = spec_dict["base_url"]
 
     all_results = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
 
-        if spec.requires_login:
-            login_workflow = _build_login_workflow(spec)
-            login_results = run_workflow(page, base_url, login_workflow)
-            all_results.extend(login_results)
+            if spec.requires_login:
+                login_workflow = _build_login_workflow(spec)
+                login_results = run_workflow(page, base_url, login_workflow)
+                all_results.extend(login_results)
 
-            if not all(r["passed"] for r in login_results):
-                # Login failed — stop here, nothing after this would be
-                # testing an authenticated session anyway.
-                browser.close()
-                report = build_report(spec.name, all_results)
-                test_run = TestRun.objects.create(
-                    spec=spec, owner=request.user, status="failed",
-                    report_json=json.dumps(report),
-                    total_checks=report["total_checks"],
-                    passed_checks=report["passed"],
-                    failed_checks=report["failed"],
-                )
-                messages.error(request, "Login failed — could not run the rest of the checks.")
-                return redirect("run_detail", run_id=test_run.id)
+                if not all(r["passed"] for r in login_results):
+                    browser.close()
+                    report = build_report(spec.name, all_results)
+                    test_run.status = "failed"
+                    test_run.report_json = json.dumps(report)
+                    test_run.total_checks = report["total_checks"]
+                    test_run.passed_checks = report["passed"]
+                    test_run.failed_checks = report["failed"]
+                    test_run.finished_at = timezone.now()
+                    test_run.save()
+                    return
 
-        for page_config in spec_dict.get("pages", []):
-            path = page_config["path"]
-            url = base_url.rstrip("/") + path
+            for page_config in spec_dict.get("pages", []):
+                path = page_config["path"]
+                url = base_url.rstrip("/") + path
 
-            for check_config in page_config.get("checks", []):
-                if check_config["type"] == "page_loads":
-                    check_config = {**check_config, "url": url}
-                else:
-                    page.goto(url)
+                for check_config in page_config.get("checks", []):
+                    if check_config["type"] == "page_loads":
+                        check_config = {**check_config, "url": url}
+                    else:
+                        page.goto(url)
 
-                result = run_check(page, check_config)
-                all_results.append(result)
+                    result = run_check(page, check_config)
+                    all_results.append(result)
 
-        for workflow in spec_dict.get("workflows", []):
-            workflow_results = run_workflow(page, base_url, workflow)
-            all_results.extend(workflow_results)
+            for workflow in spec_dict.get("workflows", []):
+                workflow_results = run_workflow(page, base_url, workflow)
+                all_results.extend(workflow_results)
 
-        browser.close()
+            browser.close()
 
-    report = build_report(spec.name, all_results)
+        report = build_report(spec.name, all_results)
+        test_run.status = "completed"
+        test_run.report_json = json.dumps(report)
+        test_run.total_checks = report["total_checks"]
+        test_run.passed_checks = report["passed"]
+        test_run.failed_checks = report["failed"]
+        test_run.finished_at = timezone.now()
+        test_run.save()
+
+    except Exception as e:
+        report = build_report(spec.name, all_results)
+        test_run.status = "failed"
+        test_run.report_json = json.dumps(report)
+        test_run.total_checks = report["total_checks"]
+        test_run.passed_checks = report["passed"]
+        test_run.failed_checks = report["failed"]
+        test_run.finished_at = timezone.now()
+        test_run.save()
+        print(f"Test run {test_run_id} crashed: {e}")
+
+
+@login_required
+def run_spec_view(request, spec_id):
+    spec = TestSpec.objects.get(id=spec_id, owner=request.user)
 
     test_run = TestRun.objects.create(
         spec=spec,
         owner=request.user,
-        status="completed",
-        report_json=json.dumps(report),
-        total_checks=report["total_checks"],
-        passed_checks=report["passed"],
-        failed_checks=report["failed"],
+        status="running",
     )
 
-    messages.info(request, f"Run complete: {report['passed']}/{report['total_checks']} checks passed.")
+    thread = threading.Thread(target=_execute_test_run, args=(test_run.id,), daemon=True)
+    thread.start()
+
+    messages.info(request, "Test started — this page will update once it's finished.")
     return redirect("run_detail", run_id=test_run.id)
 
 
