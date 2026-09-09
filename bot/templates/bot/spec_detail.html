@@ -24,6 +24,32 @@
     <pre class="bg-ink text-paper text-xs font-mono rounded-lg p-4 overflow-x-auto leading-relaxed">{{ spec.spec_yaml }}</pre>
   </div>
 
+  <div class="mb-10 border border-ink/10 rounded-lg p-5 bg-white">
+    <h2 class="text-xs font-mono uppercase tracking-wide text-ink/50 mb-3">Add interaction check</h2>
+    <p class="text-xs text-ink/50 mb-4">Test a button or link by clicking it and checking what happens — useful for "Needs review" items involving forms, buttons, or navigation.</p>
+    <form method="post" action="{% url 'add_interaction_check' spec.id %}" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label for="{{ interaction_form.selector.id_for_label }}" class="text-sm text-ink/70">{{ interaction_form.selector.label }}</label>
+        {{ interaction_form.selector }}
+        <p class="text-xs text-ink/40 mt-1">{{ interaction_form.selector.help_text }}</p>
+      </div>
+      <div>
+        <label for="{{ interaction_form.expect_url_contains.id_for_label }}" class="text-sm text-ink/70">{{ interaction_form.expect_url_contains.label }}</label>
+        {{ interaction_form.expect_url_contains }}
+        <p class="text-xs text-ink/40 mt-1">{{ interaction_form.expect_url_contains.help_text }}</p>
+      </div>
+      <div>
+        <label for="{{ interaction_form.expect_text.id_for_label }}" class="text-sm text-ink/70">{{ interaction_form.expect_text.label }}</label>
+        {{ interaction_form.expect_text }}
+      </div>
+      {% for error in interaction_form.non_field_errors %}<p class="text-sm text-fail">{{ error }}</p>{% endfor %}
+      <button type="submit" class="bg-ink text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-ink/80">
+        Add check
+      </button>
+    </form>
+  </div>
+
   <form method="post" action="{% url 'run_spec' spec.id %}" class="mb-10">
     {% csrf_token %}
     <button type="submit" class="bg-accent text-white text-sm font-medium px-5 py-2.5 rounded-md hover:bg-accent-dark">
