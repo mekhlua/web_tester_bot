@@ -56,3 +56,26 @@ class TestSpecForm(forms.Form):
                 if not cleaned_data.get(field):
                     self.add_error(field, "Required when 'requires login' is checked.")
         return cleaned_data
+
+
+class AddInteractionCheckForm(forms.Form):
+    selector = forms.CharField(
+        max_length=200,
+        label="Button/link CSS selector",
+        help_text='e.g. #contact-button or a.nav-link[href="/projects"]'
+    )
+    expect_url_contains = forms.CharField(
+        max_length=200, required=False,
+        label="Expected URL contains (optional)",
+        help_text='e.g. /projects — leave blank to skip this check'
+    )
+    expect_text = forms.CharField(
+        max_length=200, required=False,
+        label="Expected text after clicking (optional)"
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get("expect_url_contains") and not cleaned_data.get("expect_text"):
+            raise forms.ValidationError("Provide at least one of: expected URL or expected text.")
+        return cleaned_data

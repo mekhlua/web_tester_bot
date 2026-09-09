@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
 from playwright.sync_api import sync_playwright
 
-from bot.forms import TestSpecForm
+from bot.forms import TestSpecForm, AddInteractionCheckForm
 from bot.models import TestSpec, TestRun
 from engine.llm_doc_parser import parse_requirements_doc_smart
 from engine.runner import run_check
@@ -63,7 +63,40 @@ def spec_detail(request, spec_id):
     spec = TestSpec.objects.get(id=spec_id, owner=request.user)
     needs_review = json.loads(spec.needs_review) if spec.needs_review else []
     runs = spec.runs.order_by("-started_at")
-    return render(request, "bot/spec_detail.html", {"spec": spec, "needs_review": needs_review, "runs": runs})
+    interaction_form = AddInteractionCheckForm()
+    return render(request, "bot/spec_detail.html", {
+        "spec": spec, "needs_review": needs_review, "runs": runs, "interaction_form": interaction_form
+    })
+
+
+@login_required
+def add_interaction_check(request, spec_id):
+    spec = TestSpec.objects.get(id=spec_id, owner=request.user)
+
+    if request.method == "POST":
+        form = AddInteractionCheckForm(request.POST)
+        if form.is_valid():
+            spec_dict = yaml.safe_load(spec.spec_yaml)
+            spec_dict.setdefault("workflows", [])
+
+            steps = [{"action": "click", "selector": form.cleaned_data["selector"]}]
+            if form.cleaned_data.get("expect_url_contains"):
+                steps.append({"action": "expect_url_contains", "value": form.cleaned_data["expect_url_contains"]})
+            if form.cleaned_data.get("expect_text"):
+                steps.append({"action": "expect_text", "value": form.cleaned_data["expect_text"]})
+
+            spec_dict["workflows"].append({
+                "name": f"Click {form.cleaned_data['selector']}",
+                "steps": steps,
+            })
+
+            spec.spec_yaml = yaml.dump(spec_dict)
+            spec.save()
+            messages.success(request, "Interaction check added.")
+        else:
+            messages.error(request, "Could not add check: " + str(form.errors))
+
+    return redirect("spec_detail", spec_id=spec.id)
 
 
 def _build_login_workflow(spec):
