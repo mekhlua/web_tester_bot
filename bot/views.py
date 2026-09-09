@@ -155,13 +155,23 @@ def _execute_test_run(test_run_id):
 
             for page_config in spec_dict.get("pages", []):
                 path = page_config["path"]
-                url = base_url.rstrip("/") + path
+
+                if spec.requires_login:
+                    # Login already navigated us somewhere (e.g. /dashboard).
+                    # Don't force a jump back to the spec's default "/" path —
+                    # test the authenticated page we actually landed on.
+                    url = page.url
+                else:
+                    url = base_url.rstrip("/") + path
+                    page.goto(url)
+                    try:
+                        page.wait_for_load_state("networkidle", timeout=10000)
+                    except Exception:
+                        pass
 
                 for check_config in page_config.get("checks", []):
                     if check_config["type"] == "page_loads":
                         check_config = {**check_config, "url": url}
-                    else:
-                        page.goto(url)
 
                     result = run_check(page, check_config)
                     all_results.append(result)
