@@ -15,9 +15,17 @@ def action_fill(page, selector, value, **kwargs):
 def action_click(page, selector, **kwargs):
     try:
         page.click(selector)
-        return {"passed": True, "message": f"Clicked {selector}"}
     except Exception as e:
         return {"passed": False, "message": f"Failed to click {selector}: {e}"}
+
+    try:
+        page.wait_for_load_state("networkidle", timeout=10000)
+    except Exception:
+        # No navigation/network activity followed the click — that's fine,
+        # not every click triggers a page change.
+        pass
+
+    return {"passed": True, "message": f"Clicked {selector}"}
 
 
 def action_expect_element(page, selector, timeout=5000, **kwargs):
