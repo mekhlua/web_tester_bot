@@ -11,6 +11,10 @@ def page_loads(page, url, max_load_time=5.0, expected_status=200):
     """
     start = time.time()
     response = page.goto(url)
+    try:
+        page.wait_for_load_state("networkidle", timeout=10000)
+    except Exception:
+        pass
     load_time = time.time() - start
 
     if response is None:

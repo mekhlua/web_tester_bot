@@ -84,8 +84,11 @@ def add_interaction_check(request, spec_id):
             steps = [{"action": "click", "selector": form.cleaned_data["selector"]}]
             if form.cleaned_data.get("expect_url_contains"):
                 steps.append({"action": "expect_url_contains", "value": form.cleaned_data["expect_url_contains"]})
-            if form.cleaned_data.get("expect_text"):
-                steps.append({"action": "expect_text", "value": form.cleaned_data["expect_text"]})
+            expect_text_raw = form.cleaned_data.get("expect_text", "")
+            for line in expect_text_raw.splitlines():
+                line = line.strip()
+                if line:
+                    steps.append({"action": "expect_text", "value": line})
 
             spec_dict["workflows"].append({
                 "name": f"Click {form.cleaned_data['selector']}",

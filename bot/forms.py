@@ -70,8 +70,10 @@ class AddInteractionCheckForm(forms.Form):
         help_text='e.g. /projects — leave blank to skip this check'
     )
     expect_text = forms.CharField(
-        max_length=200, required=False,
-        label="Expected text after clicking (optional)"
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        label="Expected text after clicking (optional, one per line)",
+        help_text="Add multiple lines to check for several things at once"
     )
 
     def clean(self):
